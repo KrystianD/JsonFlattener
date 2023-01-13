@@ -1,0 +1,28 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "JsonFlattener", "JsonFlattener\JsonFlattener.csproj", "{15757C2B-3C9A-47A6-B947-791D2141940A}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TestApp", "TestApp\TestApp.csproj", "{6DC9F023-E5B8-4967-B27E-944730E26513}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "JsonFlattener.UnitTests", "JsonFlattener.UnitTests\JsonFlattener.UnitTests.csproj", "{1341F716-80B7-4909-838E-DC31E089195C}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{15757C2B-3C9A-47A6-B947-791D2141940A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{15757C2B-3C9A-47A6-B947-791D2141940A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{15757C2B-3C9A-47A6-B947-791D2141940A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{15757C2B-3C9A-47A6-B947-791D2141940A}.Release|Any CPU.Build.0 = Release|Any CPU
+		{6DC9F023-E5B8-4967-B27E-944730E26513}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{6DC9F023-E5B8-4967-B27E-944730E26513}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{6DC9F023-E5B8-4967-B27E-944730E26513}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{6DC9F023-E5B8-4967-B27E-944730E26513}.Release|Any CPU.Build.0 = Release|Any CPU
+		{1341F716-80B7-4909-838E-DC31E089195C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{1341F716-80B7-4909-838E-DC31E089195C}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{1341F716-80B7-4909-838E-DC31E089195C}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{1341F716-80B7-4909-838E-DC31E089195C}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+EndGlobal
