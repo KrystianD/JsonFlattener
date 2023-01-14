@@ -49,10 +49,8 @@ public static class JsonFlattener
 
     var objects = new List<Dictionary<string, JValue>>();
 
-    flattenAgainst = ("/" + flattenAgainst.Trim('/') + "/").Replace("//", "/");
-
     var emitterPoints = new List<JToken>();
-    EnumerateEmitterPoints((JObject)token, "/", flattenAgainst, emitterPoints);
+    EnumerateEmitterPoints((JObject)token, flattenAgainst, emitterPoints);
 
     foreach (var emitterPoint in emitterPoints) {
       var pobj = ProcessEmitterPoint(emitterPoint);
@@ -65,12 +63,21 @@ public static class JsonFlattener
     return objects;
   }
 
-  // ReSharper disable once SwitchStatementHandlesSomeKnownEnumValuesWithDefault
-  // ReSharper disable once SwitchStatementMissingSomeEnumCasesNoDefault
   private static void EnumerateEmitterPoints(JToken token,
-                                             string simplePath,
                                              string flattenAgainst,
                                              List<JToken> emitterPoints)
+  {
+    flattenAgainst = ("/" + flattenAgainst.Trim('/') + "/").Replace("//", "/");
+
+    EnumerateEmitterPointsInner((JObject)token, "/", flattenAgainst, emitterPoints);
+  }
+
+  // ReSharper disable once SwitchStatementHandlesSomeKnownEnumValuesWithDefault
+  // ReSharper disable once SwitchStatementMissingSomeEnumCasesNoDefault
+  private static void EnumerateEmitterPointsInner(JToken token,
+                                                  string simplePath,
+                                                  string flattenAgainst,
+                                                  List<JToken> emitterPoints)
   {
     if (simplePath == flattenAgainst) {
       switch (token.Type) {
@@ -86,7 +93,7 @@ public static class JsonFlattener
       switch (token.Type) {
         case JTokenType.Object:
           foreach (JProperty prop in token.Children<JProperty>()) {
-            EnumerateEmitterPoints(prop.Value, simplePath + prop.Name + "/", flattenAgainst, emitterPoints);
+            EnumerateEmitterPointsInner(prop.Value, simplePath + prop.Name + "/", flattenAgainst, emitterPoints);
           }
 
           break;
@@ -94,7 +101,7 @@ public static class JsonFlattener
         {
           int index = 0;
           foreach (JToken arrayItem in token.Children()) {
-            EnumerateEmitterPoints(arrayItem, simplePath, flattenAgainst, emitterPoints);
+            EnumerateEmitterPointsInner(arrayItem, simplePath, flattenAgainst, emitterPoints);
             index++;
           }
         }
@@ -222,7 +229,7 @@ public static class JsonFlattener
                        .ToList();
 
     var emitterPoints = new List<JToken>();
-    EnumerateEmitterPoints((JObject)token, "", flattenAgainst, emitterPoints);
+    EnumerateEmitterPoints((JObject)token, flattenAgainst, emitterPoints);
 
     return emitterPoints
            .Select(ProcessEmitterPoint)
