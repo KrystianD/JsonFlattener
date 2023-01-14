@@ -80,9 +80,9 @@ public static class JsonFlattener
                                                   List<JToken> emitterPoints)
   {
     if (simplePath == flattenAgainst) {
-      switch (token.Type) {
-        case JTokenType.Array:
-          emitterPoints.AddRange(token.Children());
+      switch (token) {
+        case JArray jArray:
+          emitterPoints.AddRange(jArray);
           break;
         default:
           emitterPoints.Add(token);
@@ -90,21 +90,16 @@ public static class JsonFlattener
       }
     }
     else {
-      switch (token.Type) {
-        case JTokenType.Object:
-          foreach (JProperty prop in token.Children<JProperty>()) {
-            EnumerateEmitterPointsInner(prop.Value, simplePath + prop.Name + "/", flattenAgainst, emitterPoints);
+      switch (token) {
+        case JObject jObject:
+          foreach (var pair in jObject) {
+            EnumerateEmitterPointsInner(pair.Value, simplePath + pair.Key + "/", flattenAgainst, emitterPoints);
           }
 
           break;
-        case JTokenType.Array:
-        {
-          int index = 0;
-          foreach (JToken arrayItem in token.Children()) {
-            EnumerateEmitterPointsInner(arrayItem, simplePath, flattenAgainst, emitterPoints);
-            index++;
-          }
-        }
+        case JArray jArray:
+          for (int i = 0; i < jArray.Count; i++)
+            EnumerateEmitterPointsInner(jArray[i], simplePath, flattenAgainst, emitterPoints);
           break;
       }
     }
@@ -184,9 +179,9 @@ public static class JsonFlattener
                                                string? skipProperty = null)
   {
     // ReSharper disable once SwitchStatementHandlesSomeKnownEnumValuesWithDefault
-    switch (token.Type) {
-      case JTokenType.Object:
-        foreach (JProperty prop in token.Children<JProperty>()) {
+    switch (token) {
+      case JObject jObject:
+        foreach (JProperty prop in jObject.Properties()) {
           if (prop.Name == skipProperty)
             continue;
           FillDictionaryFromJToken(prop.Value, path.Append(prop.Name), obj);
@@ -194,14 +189,9 @@ public static class JsonFlattener
 
         break;
 
-      case JTokenType.Array:
-      {
-        int index = 0;
-        foreach (JToken value in token.Children()) {
-          FillDictionaryFromJToken(value, path.AppendIndex(index), obj);
-          index++;
-        }
-      }
+      case JArray jArray:
+        for (int i = 0; i < jArray.Count; i++)
+          FillDictionaryFromJToken(jArray[i], path.AppendIndex(i), obj);
         break;
 
       default:
