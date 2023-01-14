@@ -116,7 +116,7 @@ public static class JsonFlattener
 
     var path = new List<PathItem>(10);
 
-    path.Insert(0, new PathItem() { OuterJson = emitterPoint });
+    path.Add(new PathItem() { OuterJson = emitterPoint });
 
     // JProperty curProp;
     string curPropName;
@@ -132,6 +132,7 @@ public static class JsonFlattener
 
       // emitter point is the root object, just return it
       if (parentProp == null) {
+        path.Reverse();
         return new ObjectProxy(path);
       }
 
@@ -141,10 +142,11 @@ public static class JsonFlattener
     }
 
     while (true) {
-      path.Insert(0, new PathItem() { SkipKey = curPropName, OuterJson = parentObject });
+      path.Add(new PathItem() { SkipKey = curPropName, OuterJson = parentObject });
 
       var parentProp = (JProperty?)Parent(parentObject);
       if (parentProp == null) {
+        path.Reverse();
         return new ObjectProxy(path);
       }
 
