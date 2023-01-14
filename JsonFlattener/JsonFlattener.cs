@@ -4,6 +4,41 @@ using Newtonsoft.Json.Linq;
 
 namespace JsonFlattener;
 
+public class PathItem
+{
+  public string? SkipKey;
+  public JToken OuterJson;
+}
+
+public class ObjectProxy
+{
+  public List<PathItem> pathItems;
+
+  public ObjectProxy(List<PathItem> pathItems)
+  {
+    this.pathItems = pathItems;
+  }
+
+  public JToken? GetByPath(string path)
+  {
+    var parts = path.Split('/');
+
+    for (int i = 0; i < pathItems.Count; i++) {
+      if (i >= parts.Length) {
+        var jsonPath = string.Join('.', parts.Skip(i));
+        return pathItems[i].OuterJson.SelectToken(jsonPath);
+      }
+
+      if (parts[i] != pathItems[i].SkipKey) {
+        var jsonPath = string.Join('.', parts.Skip(i));
+        return pathItems[i].OuterJson.SelectToken(jsonPath);
+      }
+    }
+
+    return null;
+  }
+}
+
 public static class JsonFlattener
 {
   public static List<Dictionary<string, JValue>> Flatten(JToken token, string flattenAgainst)
@@ -14,14 +49,16 @@ public static class JsonFlattener
 
     var objects = new List<Dictionary<string, JValue>>();
 
+    flattenAgainst = ("/" + flattenAgainst.Trim('/') + "/").Replace("//", "/");
+
     var emitterPoints = new List<JToken>();
-    EnumerateEmitterPoints((JObject)token, new PropPath(), flattenAgainst, emitterPoints);
+    EnumerateEmitterPoints((JObject)token, "/", flattenAgainst, emitterPoints);
 
     foreach (var emitterPoint in emitterPoints) {
       var pobj = ProcessEmitterPoint(emitterPoint);
 
       var obj = new Dictionary<string, JValue>();
-      FillDictionaryFromJToken(pobj, new PropPath(), obj);
+      FillDictionaryFromObjectProxy(pobj, new PropPath(), obj);
       objects.Add(obj);
     }
 
@@ -31,11 +68,11 @@ public static class JsonFlattener
   // ReSharper disable once SwitchStatementHandlesSomeKnownEnumValuesWithDefault
   // ReSharper disable once SwitchStatementMissingSomeEnumCasesNoDefault
   private static void EnumerateEmitterPoints(JToken token,
-                                             PropPath path,
+                                             string simplePath,
                                              string flattenAgainst,
                                              List<JToken> emitterPoints)
   {
-    if (path.GetSimplePath() == flattenAgainst) {
+    if (simplePath == flattenAgainst) {
       switch (token.Type) {
         case JTokenType.Array:
           emitterPoints.AddRange(token.Children());
@@ -49,7 +86,7 @@ public static class JsonFlattener
       switch (token.Type) {
         case JTokenType.Object:
           foreach (JProperty prop in token.Children<JProperty>()) {
-            EnumerateEmitterPoints(prop.Value, path.Append(prop.Name), flattenAgainst, emitterPoints);
+            EnumerateEmitterPoints(prop.Value, simplePath + prop.Name + "/", flattenAgainst, emitterPoints);
           }
 
           break;
@@ -57,7 +94,7 @@ public static class JsonFlattener
         {
           int index = 0;
           foreach (JToken arrayItem in token.Children()) {
-            EnumerateEmitterPoints(arrayItem, path.AppendIndex(index), flattenAgainst, emitterPoints);
+            EnumerateEmitterPoints(arrayItem, simplePath, flattenAgainst, emitterPoints);
             index++;
           }
         }
@@ -66,7 +103,7 @@ public static class JsonFlattener
     }
   }
 
-  private static JObject ProcessEmitterPoint(JToken emitterPoint)
+  private static ObjectProxy ProcessEmitterPoint(JToken emitterPoint)
   {
     static JToken Parent(JToken x)
     {
@@ -77,50 +114,72 @@ public static class JsonFlattener
       return p!;
     }
 
-    JProperty curProp;
+    var path = new List<PathItem>(10);
+
+    path.Insert(0, new PathItem() { OuterJson = emitterPoint });
+
+    // JProperty curProp;
+    string curPropName;
     JObject parentObject;
     if (emitterPoint.Parent is JArray emitterArray) {
       // extract single value from the array against which we are unwrapping
       var parentProp = (JProperty)emitterArray.Parent!;
       parentObject = (JObject)parentProp.Parent!;
-      curProp = new JProperty(parentProp.Name, emitterPoint);
+      curPropName = parentProp.Name;
     }
     else {
       var parentProp = (JProperty?)emitterPoint.Parent;
 
       // emitter point is the root object, just return it
       if (parentProp == null) {
-        return (JObject)emitterPoint;
+        return new ObjectProxy(path);
       }
 
-      curProp = parentProp;
+      var curProp = parentProp;
       parentObject = (JObject)curProp.Parent!;
+      curPropName = curProp.Name;
     }
 
-
     while (true) {
-      var prop = curProp;
-      JObject newObj = new JObject(parentObject.Properties().Where(x => x.Name != prop.Name));
-      newObj.Add(curProp);
+      path.Insert(0, new PathItem() { SkipKey = curPropName, OuterJson = parentObject });
 
       var parentProp = (JProperty?)Parent(parentObject);
       if (parentProp == null) {
-        return newObj;
+        return new ObjectProxy(path);
       }
 
-      curProp = new JProperty(parentProp.Name, newObj);
+      curPropName = parentProp.Name;
       parentObject = (JObject)Parent(parentProp);
+    }
+  }
+
+  private static void FillDictionaryFromObjectProxy(ObjectProxy proxy,
+                                                    PropPath path,
+                                                    Dictionary<string, JValue> obj)
+  {
+    var curPath = new PropPath();
+    foreach (var pathItem in proxy.pathItems) {
+      if (pathItem.SkipKey == null) {
+        FillDictionaryFromJToken(pathItem.OuterJson, curPath, obj);
+      }
+      else {
+        FillDictionaryFromJToken(pathItem.OuterJson, curPath, obj, skipProperty: pathItem.SkipKey);
+        curPath = curPath.Append(pathItem.SkipKey);
+      }
     }
   }
 
   private static void FillDictionaryFromJToken(JToken token,
                                                PropPath path,
-                                               Dictionary<string, JValue> obj)
+                                               Dictionary<string, JValue> obj,
+                                               string? skipProperty = null)
   {
     // ReSharper disable once SwitchStatementHandlesSomeKnownEnumValuesWithDefault
     switch (token.Type) {
       case JTokenType.Object:
         foreach (JProperty prop in token.Children<JProperty>()) {
+          if (prop.Name == skipProperty)
+            continue;
           FillDictionaryFromJToken(prop.Value, path.Append(prop.Name), obj);
         }
 
@@ -160,14 +219,20 @@ public static class JsonFlattener
                        .Select(x => (Field: x, FlattenerPath: x.GetCustomAttribute<FlattenerMappingAttribute>()!.Path))
                        .ToList();
 
-    return Flatten(token, flattenAgainst)
+    var emitterPoints = new List<JToken>();
+    EnumerateEmitterPoints((JObject)token, "", flattenAgainst, emitterPoints);
+
+    return emitterPoints
+           .Select(ProcessEmitterPoint)
            // ReSharper disable once HeapView.DelegateAllocation
-           .Select(objDict => {
+           .Select(jsonObj => {
+             // return new T();
              var obj = new T();
              foreach (var (field, flattenerPath) in fields) {
                try {
-                 if (objDict.TryGetValue(flattenerPath, out var objValue))
-                   field.SetValue(obj, objValue.ToObject(field.FieldType));
+                 var token = jsonObj.GetByPath(flattenerPath);
+                 if (token != null)
+                   field.SetValue(obj, token.ToObject(field.FieldType));
                }
                catch (FormatException e) {
                  Console.WriteLine($"field: {field.Name} - {e.Message}");
@@ -181,8 +246,9 @@ public static class JsonFlattener
 
              foreach (var (field, flattenerPath) in props) {
                try {
-                 if (objDict.TryGetValue(flattenerPath, out var objValue))
-                   field.SetValue(obj, objValue.ToObject(field.PropertyType));
+                 var token = jsonObj.GetByPath(flattenerPath);
+                 if (token != null)
+                   field.SetValue(obj, token.ToObject(field.PropertyType));
                }
                catch (FormatException e) {
                  Console.WriteLine($"field: {field.Name} - {e.Message}");
