@@ -205,11 +205,13 @@ public static class JsonFlattener
     public class FieldDef
     {
       public string Name;
-      
+
       public Action<object, object?> SetValue;
       public Type FieldType;
-      
+
       public FlattenerMappingAttribute Mapping;
+
+      public Func<JValue, object?>? Processor;
     }
 
     public List<FieldDef> fields = new();
@@ -225,11 +227,14 @@ public static class JsonFlattener
       if (attr == null)
         continue;
 
+      var processor = fieldInfo.GetCustomAttribute<FlattenerProcessorAttribute>();
+
       cls.fields.Add(new ClassDef.FieldDef() {
           Name = fieldInfo.Name,
           SetValue = fieldInfo.SetValue,
           FieldType = fieldInfo.FieldType,
           Mapping = attr,
+          Processor = processor == null ? null : processor.Processor.Processor,
       });
     }
 
@@ -238,11 +243,14 @@ public static class JsonFlattener
       if (attr == null)
         continue;
 
+      var processor = propertyInfo.GetCustomAttribute<FlattenerProcessorAttribute>();
+
       cls.fields.Add(new ClassDef.FieldDef() {
           Name = propertyInfo.Name,
           SetValue = propertyInfo.SetValue,
           FieldType = propertyInfo.PropertyType,
           Mapping = attr,
+          Processor = processor == null ? null : processor.Processor.Processor,
       });
     }
 
@@ -284,8 +292,18 @@ public static class JsonFlattener
              foreach (var field in cls.fields) {
                try {
                  var fieldToken = GetByPaths(jsonObj, field.Mapping);
-                 if (fieldToken != null)
-                   field.SetValue(obj, fieldToken.ToObject(field.FieldType));
+                 if (fieldToken != null) {
+                   if (field.Processor != null) {
+                     var o = field.Processor((JValue)fieldToken);
+                     if (o is JValue jValue)
+                       field.SetValue(obj, jValue.ToObject(field.FieldType));
+                     else
+                       field.SetValue(obj, o);
+                   }
+                   else {
+                     field.SetValue(obj, fieldToken.ToObject(field.FieldType));
+                   }
+                 }
                }
                catch (FormatException e) {
                  Console.WriteLine($"field: {field.Name} - {e.Message}");
