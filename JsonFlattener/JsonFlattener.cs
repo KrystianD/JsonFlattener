@@ -6,32 +6,32 @@ namespace JsonFlattener;
 
 public class PathItem
 {
-  public string? SkipKey;
+  public string? NextKey;
   public JToken OuterJson;
 }
 
 public class ObjectProxy
 {
-  public List<PathItem> pathItems;
+  public readonly List<PathItem> PathItems;
 
   public ObjectProxy(List<PathItem> pathItems)
   {
-    this.pathItems = pathItems;
+    PathItems = pathItems;
   }
 
   public JToken? GetByPath(string path)
   {
     var parts = path.Split('/');
 
-    for (int i = 0; i < pathItems.Count; i++) {
+    for (int i = 0; i < PathItems.Count; i++) {
       if (i >= parts.Length) {
         var jsonPath = string.Join('.', parts.Skip(i));
-        return pathItems[i].OuterJson.SelectToken(jsonPath);
+        return PathItems[i].OuterJson.SelectToken(jsonPath);
       }
 
-      if (parts[i] != pathItems[i].SkipKey) {
+      if (parts[i] != PathItems[i].NextKey) {
         var jsonPath = string.Join('.', parts.Skip(i));
-        return pathItems[i].OuterJson.SelectToken(jsonPath);
+        return PathItems[i].OuterJson.SelectToken(jsonPath);
       }
     }
 
@@ -144,7 +144,7 @@ public static class JsonFlattener
     }
 
     while (true) {
-      path.Add(new PathItem() { SkipKey = curPropName, OuterJson = parentObject });
+      path.Add(new PathItem() { NextKey = curPropName, OuterJson = parentObject });
 
       var parentProp = (JProperty?)Parent(parentObject);
       if (parentProp == null) {
@@ -162,13 +162,13 @@ public static class JsonFlattener
                                                     Dictionary<string, JValue> obj)
   {
     var curPath = new PropPath();
-    foreach (var pathItem in proxy.pathItems) {
-      if (pathItem.SkipKey == null) {
+    foreach (var pathItem in proxy.PathItems) {
+      if (pathItem.NextKey == null) {
         FillDictionaryFromJToken(pathItem.OuterJson, curPath, obj);
       }
       else {
-        FillDictionaryFromJToken(pathItem.OuterJson, curPath, obj, skipProperty: pathItem.SkipKey);
-        curPath = curPath.Append(pathItem.SkipKey);
+        FillDictionaryFromJToken(pathItem.OuterJson, curPath, obj, skipProperty: pathItem.NextKey);
+        curPath = curPath.Append(pathItem.NextKey);
       }
     }
   }
@@ -214,7 +214,7 @@ public static class JsonFlattener
       public Func<JValue, object?>? Processor;
     }
 
-    public List<FieldDef> fields = new();
+    public readonly List<FieldDef> Fields = new();
   }
 
   private static ClassDef PrepareClass(Type objType)
@@ -229,7 +229,7 @@ public static class JsonFlattener
 
       var processor = fieldInfo.GetCustomAttribute<FlattenerProcessorAttribute>();
 
-      cls.fields.Add(new ClassDef.FieldDef() {
+      cls.Fields.Add(new ClassDef.FieldDef() {
           Name = fieldInfo.Name,
           SetValue = fieldInfo.SetValue,
           FieldType = fieldInfo.FieldType,
@@ -245,7 +245,7 @@ public static class JsonFlattener
 
       var processor = propertyInfo.GetCustomAttribute<FlattenerProcessorAttribute>();
 
-      cls.fields.Add(new ClassDef.FieldDef() {
+      cls.Fields.Add(new ClassDef.FieldDef() {
           Name = propertyInfo.Name,
           SetValue = propertyInfo.SetValue,
           FieldType = propertyInfo.PropertyType,
@@ -289,7 +289,7 @@ public static class JsonFlattener
            // ReSharper disable once HeapView.DelegateAllocation
            .Select(jsonObj => {
              var obj = new T();
-             foreach (var field in cls.fields) {
+             foreach (var field in cls.Fields) {
                try {
                  var fieldToken = GetByPaths(jsonObj, field.Mapping);
                  if (fieldToken != null) {
