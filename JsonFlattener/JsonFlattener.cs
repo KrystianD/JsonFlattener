@@ -115,7 +115,7 @@ public static class JsonFlattener
       switch (token) {
         case JObject jObject:
           foreach (var pair in jObject)
-            EnumerateEmitterPointsInner(pair.Value, simplePath + pair.Key + "/", flattenAgainst, emitterPoints);
+            EnumerateEmitterPointsInner(pair.Value!, simplePath + pair.Key + "/", flattenAgainst, emitterPoints);
           break;
         case JArray jArray:
           for (int i = 0; i < jArray.Count; i++)
@@ -223,14 +223,14 @@ public static class JsonFlattener
   {
     public class FieldDef
     {
-      public string Name;
+      public readonly string Name;
 
-      public Action<object, object?> SetValue;
-      public Type FieldType;
+      public readonly Action<object, object?> SetValue;
+      public readonly Type FieldType;
 
-      public FlattenerMappingAttribute Mapping;
+      public readonly FlattenerMappingAttribute Mapping;
 
-      public Func<JValue, object?>? Processor;
+      public readonly Func<JValue, object?>? Processor;
 
       public FieldDef(string name, Action<object, object?> setValue, Type fieldType, FlattenerMappingAttribute mapping, Func<JValue, object?>? processor)
       {
@@ -314,7 +314,6 @@ public static class JsonFlattener
 
     return emitterPoints
            .Select(ProcessEmitterPoint)
-           // ReSharper disable once HeapView.DelegateAllocation
            .Select(jsonObj => {
              var obj = new T();
              foreach (var field in cls.Fields) {
