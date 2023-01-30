@@ -3,12 +3,12 @@ namespace JsonFlattener;
 [AttributeUsage(AttributeTargets.Field | AttributeTargets.Property)]
 public class FlattenerMappingAttribute : Attribute
 {
-  public string Path { get; }
+  internal Path Path { get; }
 
-  public string[] AlternativePaths = Array.Empty<string>();
+  internal Path[] AlternativePaths = Array.Empty<Path>();
 
   public FlattenerMappingAttribute(string path)
   {
-    Path = path;
+    Path = new Path(path);
   }
 }

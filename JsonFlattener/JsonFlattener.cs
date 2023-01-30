@@ -5,6 +5,21 @@ using Newtonsoft.Json.Linq;
 
 namespace JsonFlattener;
 
+internal class Path
+{
+  public readonly string[] Parts;
+
+  public Path(string[] parts)
+  {
+    Parts = parts;
+  }
+
+  public Path(string path)
+  {
+    Parts = path.Split('/');
+  }
+}
+
 public class PathItem
 {
   public string? NextKey;
@@ -29,15 +44,19 @@ public class ObjectProxy
   public JToken? GetByPath(string path)
   {
     var parts = path.Split('/');
+    return GetByPath(new Path(parts));
+  }
 
+  internal JToken? GetByPath(Path path)
+  {
     for (int i = 0; i < PathItems.Count; i++) {
-      if (i >= parts.Length) {
-        var jsonPath = string.Join('.', parts.Skip(i));
+      if (i >= path.Parts.Length) {
+        var jsonPath = string.Join('.', path.Parts.Skip(i));
         return PathItems[i].OuterJson.SelectToken(jsonPath);
       }
 
-      if (parts[i] != PathItems[i].NextKey) {
-        var jsonPath = string.Join('.', parts.Skip(i));
+      if (path.Parts[i] != PathItems[i].NextKey) {
+        var jsonPath = string.Join('.', path.Parts.Skip(i));
         return PathItems[i].OuterJson.SelectToken(jsonPath);
       }
     }
