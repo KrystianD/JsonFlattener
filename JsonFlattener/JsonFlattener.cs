@@ -27,8 +27,8 @@ internal class Path
 
 public class PathItem
 {
-  public string? NextKey;
-  public JToken OuterJson;
+  public readonly string? NextKey;
+  public readonly JToken OuterJson;
 
   public PathItem(string? nextKey, JToken outerJson)
   {
