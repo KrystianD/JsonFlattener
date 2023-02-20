@@ -200,6 +200,55 @@ public static class JsonFlattener
     }
   }
 
+  private class ClassDef
+  {
+    public class FieldDef
+    {
+      public string Name;
+      
+      public Action<object, object?> SetValue;
+      public Type FieldType;
+      
+      public FlattenerMappingAttribute Mapping;
+    }
+
+    public List<FieldDef> fields = new();
+  }
+
+  private static ClassDef PrepareClass(Type objType)
+  {
+    // FlattenerProcessorAttribute
+    var cls = new ClassDef();
+
+    foreach (var fieldInfo in objType.GetFields(BindingFlags.Instance | BindingFlags.Public)) {
+      var attr = fieldInfo.GetCustomAttribute<FlattenerMappingAttribute>();
+      if (attr == null)
+        continue;
+
+      cls.fields.Add(new ClassDef.FieldDef() {
+          Name = fieldInfo.Name,
+          SetValue = fieldInfo.SetValue,
+          FieldType = fieldInfo.FieldType,
+          Mapping = attr,
+      });
+    }
+
+    foreach (var propertyInfo in objType.GetProperties(BindingFlags.Instance | BindingFlags.Public)) {
+      var attr = propertyInfo.GetCustomAttribute<FlattenerMappingAttribute>();
+      if (attr == null)
+        continue;
+
+      cls.fields.Add(new ClassDef.FieldDef() {
+          Name = propertyInfo.Name,
+          SetValue = propertyInfo.SetValue,
+          FieldType = propertyInfo.PropertyType,
+          Mapping = attr,
+      });
+    }
+
+    return cls;
+  }
+
   [SuppressMessage("ReSharper", "HeapView.PossibleBoxingAllocation")]
   public static List<T> FlattenToObject<T>(JToken token, string flattenAgainst) where T : new()
   {
@@ -207,47 +256,36 @@ public static class JsonFlattener
       throw new ArgumentNullException(nameof(token));
     }
 
-    var objType = typeof(T);
-    var fields = objType.GetFields(BindingFlags.Instance | BindingFlags.Public)
-                        .Where(x => x.GetCustomAttribute<FlattenerMappingAttribute>() is not null)
-                        .Select(x => (Field: x, FlattenerPath: x.GetCustomAttribute<FlattenerMappingAttribute>()!.Path))
-                        .ToList();
-
-    var props = objType.GetProperties(BindingFlags.Instance | BindingFlags.Public)
-                       .Where(x => x.GetCustomAttribute<FlattenerMappingAttribute>() is not null)
-                       .Select(x => (Field: x, FlattenerPath: x.GetCustomAttribute<FlattenerMappingAttribute>()!.Path))
-                       .ToList();
+    var cls = PrepareClass(typeof(T));
 
     var emitterPoints = new List<JToken>();
     EnumerateEmitterPoints((JObject)token, flattenAgainst, emitterPoints);
+
+    static JToken? GetByPaths(ObjectProxy jsonObj, FlattenerMappingAttribute attr)
+    {
+      var token = jsonObj.GetByPath(attr.Path);
+      if (token != null)
+        return token;
+
+      foreach (var path in attr.AlternativePaths) {
+        token = jsonObj.GetByPath(path);
+        if (token != null)
+          return token;
+      }
+
+      return null;
+    }
 
     return emitterPoints
            .Select(ProcessEmitterPoint)
            // ReSharper disable once HeapView.DelegateAllocation
            .Select(jsonObj => {
-             // return new T();
              var obj = new T();
-             foreach (var (field, flattenerPath) in fields) {
+             foreach (var field in cls.fields) {
                try {
-                 var token = jsonObj.GetByPath(flattenerPath);
-                 if (token != null)
-                   field.SetValue(obj, token.ToObject(field.FieldType));
-               }
-               catch (FormatException e) {
-                 Console.WriteLine($"field: {field.Name} - {e.Message}");
-                 throw;
-               }
-               catch (ArgumentException e) {
-                 Console.WriteLine($"field: {field.Name} - {e.Message}");
-                 throw;
-               }
-             }
-
-             foreach (var (field, flattenerPath) in props) {
-               try {
-                 var token = jsonObj.GetByPath(flattenerPath);
-                 if (token != null)
-                   field.SetValue(obj, token.ToObject(field.PropertyType));
+                 var fieldToken = GetByPaths(jsonObj, field.Mapping);
+                 if (fieldToken != null)
+                   field.SetValue(obj, fieldToken.ToObject(field.FieldType));
                }
                catch (FormatException e) {
                  Console.WriteLine($"field: {field.Name} - {e.Message}");
