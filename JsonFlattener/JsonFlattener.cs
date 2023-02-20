@@ -1,3 +1,4 @@
+using System.Collections;
 using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using JetBrains.Annotations;
@@ -67,6 +68,54 @@ public class ObjectProxy
     }
 
     return null;
+  }
+
+  public Dictionary<string, JValue> GetAsDictionary()
+  {
+    var obj = new Dictionary<string, JValue>();
+    FillDictionaryFromObjectProxy(obj);
+    return obj;
+  }
+
+  private void FillDictionaryFromObjectProxy(Dictionary<string, JValue> obj)
+  {
+    var curPath = new PropPath();
+    foreach (var pathItem in PathItems) {
+      if (pathItem.NextKey == null) {
+        FillDictionaryFromJToken(pathItem.OuterJson, curPath, obj);
+      }
+      else {
+        FillDictionaryFromJToken(pathItem.OuterJson, curPath, obj, skipProperty: pathItem.NextKey);
+        curPath = curPath.Append(pathItem.NextKey);
+      }
+    }
+  }
+
+  private static void FillDictionaryFromJToken(JToken token,
+                                               PropPath path,
+                                               Dictionary<string, JValue> obj,
+                                               string? skipProperty = null)
+  {
+    // ReSharper disable once SwitchStatementHandlesSomeKnownEnumValuesWithDefault
+    switch (token) {
+      case JObject jObject:
+        foreach (JProperty prop in jObject.Properties()) {
+          if (prop.Name == skipProperty)
+            continue;
+          FillDictionaryFromJToken(prop.Value, path.Append(prop.Name), obj);
+        }
+
+        break;
+
+      case JArray jArray:
+        for (int i = 0; i < jArray.Count; i++)
+          FillDictionaryFromJToken(jArray[i], path.AppendIndex(i), obj);
+        break;
+
+      default:
+        obj.Add(path.ToString(), (JValue)token);
+        break;
+    }
   }
 }
 
@@ -174,48 +223,6 @@ public static class JsonFlattener
 
       curPropName = parentProp.Name;
       parentObject = (JObject)Parent(parentProp);
-    }
-  }
-
-  private static void FillDictionaryFromObjectProxy(ObjectProxy proxy,
-                                                    Dictionary<string, JValue> obj)
-  {
-    var curPath = new PropPath();
-    foreach (var pathItem in proxy.PathItems) {
-      if (pathItem.NextKey == null) {
-        FillDictionaryFromJToken(pathItem.OuterJson, curPath, obj);
-      }
-      else {
-        FillDictionaryFromJToken(pathItem.OuterJson, curPath, obj, skipProperty: pathItem.NextKey);
-        curPath = curPath.Append(pathItem.NextKey);
-      }
-    }
-  }
-
-  private static void FillDictionaryFromJToken(JToken token,
-                                               PropPath path,
-                                               Dictionary<string, JValue> obj,
-                                               string? skipProperty = null)
-  {
-    // ReSharper disable once SwitchStatementHandlesSomeKnownEnumValuesWithDefault
-    switch (token) {
-      case JObject jObject:
-        foreach (JProperty prop in jObject.Properties()) {
-          if (prop.Name == skipProperty)
-            continue;
-          FillDictionaryFromJToken(prop.Value, path.Append(prop.Name), obj);
-        }
-
-        break;
-
-      case JArray jArray:
-        for (int i = 0; i < jArray.Count; i++)
-          FillDictionaryFromJToken(jArray[i], path.AppendIndex(i), obj);
-        break;
-
-      default:
-        obj.Add(path.ToString(), (JValue)token);
-        break;
     }
   }
 
@@ -348,10 +355,6 @@ public static class JsonFlattener
 
   public static List<Dictionary<string, JValue>> FlattenToDict(JToken token, string flattenAgainst)
   {
-    return FlattenToProxy(token, flattenAgainst).Select(objectProxy => {
-      var obj = new Dictionary<string, JValue>();
-      FillDictionaryFromObjectProxy(objectProxy, obj);
-      return obj;
-    }).ToList();
+    return FlattenToProxy(token, flattenAgainst).Select(objectProxy => objectProxy.GetAsDictionary()).ToList();
   }
 }
