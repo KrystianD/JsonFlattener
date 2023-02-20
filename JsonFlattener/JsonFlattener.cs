@@ -240,6 +240,11 @@ public static class JsonFlattener
            }).ToList();
   }
 
+  public static Dictionary<string, JValue> FlattenToDict(JToken token)
+  {
+    return FlattenToProxy(token, "")[0].GetAsDictionary();
+  }
+
   public static List<Dictionary<string, JValue>> FlattenToDict(JToken token, string flattenAgainst)
   {
     return FlattenToProxy(token, flattenAgainst).Select(objectProxy => objectProxy.GetAsDictionary()).ToList();
