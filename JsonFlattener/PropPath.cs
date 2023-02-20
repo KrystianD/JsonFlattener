@@ -44,11 +44,6 @@ public readonly struct PropPath
     return new PropPath(newParts);
   }
 
-  public string GetSimplePath()
-  {
-    return string.Join('/', Parts.Select(x => x.Name));
-  }
-
   public override bool Equals(object? obj)
   {
     return obj != null && ToString().Equals(obj.ToString());
