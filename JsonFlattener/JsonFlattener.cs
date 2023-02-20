@@ -231,6 +231,15 @@ public static class JsonFlattener
       public FlattenerMappingAttribute Mapping;
 
       public Func<JValue, object?>? Processor;
+
+      public FieldDef(string name, Action<object, object?> setValue, Type fieldType, FlattenerMappingAttribute mapping, Func<JValue, object?>? processor)
+      {
+        Name = name;
+        SetValue = setValue;
+        FieldType = fieldType;
+        Mapping = mapping;
+        Processor = processor;
+      }
     }
 
     public readonly List<FieldDef> Fields = new();
@@ -248,13 +257,13 @@ public static class JsonFlattener
 
       var processor = fieldInfo.GetCustomAttribute<FlattenerProcessorAttribute>();
 
-      cls.Fields.Add(new ClassDef.FieldDef() {
-          Name = fieldInfo.Name,
-          SetValue = fieldInfo.SetValue,
-          FieldType = fieldInfo.FieldType,
-          Mapping = attr,
-          Processor = processor == null ? null : processor.Processor.Processor,
-      });
+      cls.Fields.Add(new ClassDef.FieldDef(
+                         name: fieldInfo.Name,
+                         setValue: fieldInfo.SetValue,
+                         fieldType: fieldInfo.FieldType,
+                         mapping: attr,
+                         processor: processor == null ? null : processor.Processor.Processor
+                     ));
     }
 
     foreach (var propertyInfo in objType.GetProperties(BindingFlags.Instance | BindingFlags.Public)) {
@@ -264,13 +273,13 @@ public static class JsonFlattener
 
       var processor = propertyInfo.GetCustomAttribute<FlattenerProcessorAttribute>();
 
-      cls.Fields.Add(new ClassDef.FieldDef() {
-          Name = propertyInfo.Name,
-          SetValue = propertyInfo.SetValue,
-          FieldType = propertyInfo.PropertyType,
-          Mapping = attr,
-          Processor = processor == null ? null : processor.Processor.Processor,
-      });
+      cls.Fields.Add(new ClassDef.FieldDef(
+                         name: propertyInfo.Name,
+                         setValue: propertyInfo.SetValue,
+                         fieldType: propertyInfo.PropertyType,
+                         mapping: attr,
+                         processor: processor == null ? null : processor.Processor.Processor
+                     ));
     }
 
     return cls;
