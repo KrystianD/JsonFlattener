@@ -1,4 +1,3 @@
-using System.Collections;
 using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using JetBrains.Annotations;
@@ -41,7 +40,7 @@ public class PathItem
 [PublicAPI]
 public class ObjectProxy
 {
-  public readonly List<PathItem> PathItems;
+  private readonly List<PathItem> PathItems;
 
   public ObjectProxy(List<PathItem> pathItems)
   {
@@ -168,6 +167,7 @@ public static class JsonFlattener
             EnumerateEmitterPointsInner(pair.Value!, simplePath + pair.Key + "/", flattenAgainst, emitterPoints);
           break;
         case JArray jArray:
+          // ReSharper disable once ForCanBeConvertedToForeach
           for (int i = 0; i < jArray.Count; i++)
             EnumerateEmitterPointsInner(jArray[i], simplePath, flattenAgainst, emitterPoints);
           break;
