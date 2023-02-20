@@ -1,3 +1,4 @@
+using JetBrains.Annotations;
 using Newtonsoft.Json.Linq;
 
 namespace JsonFlattener;
@@ -7,6 +8,7 @@ public interface FlattenerProcessor
   public object? Processor(JValue value);
 }
 
+[PublicAPI]
 [AttributeUsage(AttributeTargets.Field | AttributeTargets.Property)]
 public class FlattenerProcessorAttribute : Attribute
 {

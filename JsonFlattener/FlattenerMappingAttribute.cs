@@ -1,5 +1,8 @@
+using JetBrains.Annotations;
+
 namespace JsonFlattener;
 
+[PublicAPI]
 [AttributeUsage(AttributeTargets.Field | AttributeTargets.Property)]
 public class FlattenerMappingAttribute : Attribute
 {

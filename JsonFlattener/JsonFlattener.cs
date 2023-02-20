@@ -38,6 +38,7 @@ public class PathItem
   }
 }
 
+[PublicAPI]
 public class ObjectProxy
 {
   public readonly List<PathItem> PathItems;
