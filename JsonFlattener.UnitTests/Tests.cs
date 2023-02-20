@@ -121,6 +121,36 @@ public class Tests
   }
 
   [Fact]
+  public void TestUnwrapNested2()
+  {
+      AssertUtils.AssertFlattened(
+              JToken.FromObject(new {
+                      name = "value",
+                      sub = new {
+                              objs = new[] {
+                                      new {
+                                              n1 = 1,
+                                      },
+                                      new {
+                                              n1 = 2,
+                                      },
+                              },
+                      },
+              }).ToString(),
+              "sub/objs/n1",
+              new object[] {
+                      new Dictionary<string, object>() {
+                              ["name"] = "value",
+                              ["sub/objs/n1"] = 1,
+                      },
+                      new Dictionary<string, object>() {
+                              ["name"] = "value",
+                              ["sub/objs/n1"] = 2,
+                      },
+              });
+  }
+
+  [Fact]
   public void TestUnwrapNestedInArray()
   {
     AssertUtils.AssertFlattened(
