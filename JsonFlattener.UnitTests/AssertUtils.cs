@@ -1,4 +1,3 @@
-using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
@@ -9,36 +8,26 @@ namespace JsonFlattener.UnitTests;
 
 public static class AssertUtils
 {
-  private static List<Dictionary<string, JValue>> Flatten(string json)
-  {
-    var flattened = JsonFlattener.Flatten(JToken.Parse(json), "");
-    foreach (var dictionary in flattened) {
-      foreach (var (key, value) in dictionary) {
-        Console.WriteLine($"{key} = {value}");
-      }
-
-      Console.WriteLine();
-    }
-
-    return flattened;
-  }
-
   public static void AssertFlattened(string json, object[] expectedObjects)
   {
-    AssertFlattened(Flatten(json), expectedObjects);
+    AssertFlattened(JsonFlattener.Flatten(JToken.Parse(json), ""), expectedObjects);
   }
 
-  public static void AssertFlattened(string json,string unwrapBy, object[] expectedObjects)
+  public static void AssertFlattened(object json, string unwrapBy, object[] expectedObjects)
+  {
+    AssertFlattened(JsonFlattener.Flatten(JToken.FromObject(json), unwrapBy), expectedObjects);
+  }
+
+  public static void AssertFlattened(string json, string unwrapBy, object[] expectedObjects)
   {
     AssertFlattened(JsonFlattener.Flatten(JToken.Parse(json), unwrapBy), expectedObjects);
   }
 
-  public static void AssertFlattened(List<Dictionary<string, JValue>> res, object[] expectedObjects)
+  private static void AssertFlattened(List<Dictionary<string, JValue>> res, object[] expectedObjects)
   {
     Assert.Equal(expectedObjects.Length, res.Count);
 
     foreach (var (outputObject, expectedObject) in res.Zip(expectedObjects)) {
-
       if (expectedObject is Dictionary<string, object> objDict) {
         Assert.Equal(objDict.Count, outputObject.Count);
 
@@ -49,7 +38,7 @@ public static class AssertUtils
       }
       else {
         var objType = expectedObject.GetType();
-        
+
         var fields = objType.GetProperties(BindingFlags.Instance | BindingFlags.Public)
                             .ToList();
 

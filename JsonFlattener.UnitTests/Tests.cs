@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using Newtonsoft.Json.Linq;
 using Xunit;
@@ -60,6 +61,31 @@ public class Tests
             new Dictionary<string, object>() {
                 ["name"] = "value",
                 ["objs/n1"] = 2,
+            },
+        });
+  }
+
+  [Fact]
+  public void TestUnwrap2()
+  {
+    AssertUtils.AssertFlattened(
+        new {
+            name = "value",
+            objs = new[] {
+                new {
+                    n1 = 1,
+                },
+                new {
+                    n1 = 2,
+                },
+            },
+        },
+        "name",
+        new object[] {
+            new Dictionary<string, object>() {
+                ["objs[0]/n1"] = 1,
+                ["objs[1]/n1"] = 2,
+                ["name"] = "value",
             },
         });
   }
@@ -172,5 +198,11 @@ public class Tests
                 ["objs[1]/n1"] = 4,
             },
         });
+  }
+
+  [Fact]
+  public void TestErrors()
+  {
+    Assert.Throws<ArgumentNullException>(() => JsonFlattener.Flatten(null!, ""));
   }
 }

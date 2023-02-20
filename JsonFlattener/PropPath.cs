@@ -1,25 +1,34 @@
-using JsonFlattener.KDLib;
-
 namespace JsonFlattener;
 
 public readonly struct PropPath
 {
-  public PropPathPart[] Parts { get; private init; }
+  private struct Part
+  {
+    public string Name;
+    public int? Index;
+
+    public override string ToString()
+    {
+      return Index == null ? Name : $"{Name}[{Index}]";
+    }
+  }
+
+  private Part[] Parts { get; }
 
   public PropPath()
   {
-    Parts = Array.Empty<PropPathPart>();
+    Parts = Array.Empty<Part>();
   }
 
-  private PropPath(IEnumerable<PropPathPart> parts)
+  private PropPath(IEnumerable<Part> parts)
   {
     Parts = parts.ToArray();
   }
 
   public PropPath Append(string name)
   {
-    var newParts = new List<PropPathPart>(Parts);
-    newParts.Add(new PropPathPart() {
+    var newParts = new List<Part>(Parts);
+    newParts.Add(new Part() {
         Name = name,
     });
     return new PropPath(newParts);
@@ -27,25 +36,22 @@ public readonly struct PropPath
 
   public PropPath AppendIndex(int index)
   {
-    var newParts = new List<PropPathPart>(
-        Parts.Take(Parts.Length - 1).Append(new PropPathPart() {
+    var newParts = new List<Part>(
+        Parts.Take(Parts.Length - 1).Append(new Part() {
             Name = Parts.Last().Name,
             Index = index,
         }));
-    // newParts.Add(new PropPathPart() {
-    // Index = index,
-    // });
     return new PropPath(newParts);
   }
 
   public string GetSimplePath()
   {
-    return Parts.Select(x => x.Name).JoinString("/");
+    return string.Join('/', Parts.Select(x => x.Name));
   }
 
   public override bool Equals(object? obj)
   {
-    return ToString().Equals(obj.ToString());
+    return obj != null && ToString().Equals(obj.ToString());
   }
 
   public override int GetHashCode()
@@ -55,27 +61,6 @@ public readonly struct PropPath
 
   public override string ToString()
   {
-    return Parts.Select(x => x.ToString()).JoinString("/");
-  }
-
-  public PropPath Take(int length)
-  {
-    if (length == Parts.Length)
-      return this;
-    return new PropPath(Parts.Take(length));
-  }
-
-  public PropPath Skip(int length)
-  {
-    if (length == 0)
-      return this;
-    return new PropPath(Parts.Skip(length));
-  }
-
-  public PropPath MakeStartSimple(int length)
-  {
-    if (length == 0)
-      return this;
-    return new PropPath(Parts.Take(length).Select(x => new PropPathPart() { Name = x.Name }).Concat(Parts.Skip(length)));
+    return string.Join('/', Parts.Select(x => x.ToString()));
   }
 }
