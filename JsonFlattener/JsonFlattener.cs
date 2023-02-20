@@ -18,6 +18,11 @@ internal class Path
   {
     Parts = path.Split('/');
   }
+
+  public override string ToString()
+  {
+    return string.Join('/', Parts);
+  }
 }
 
 public class PathItem
