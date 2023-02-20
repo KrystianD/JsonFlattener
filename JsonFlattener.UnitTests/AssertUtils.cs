@@ -10,17 +10,17 @@ public static class AssertUtils
 {
   public static void AssertFlattened(string json, object[] expectedObjects)
   {
-    AssertFlattened(JsonFlattener.Flatten(JToken.Parse(json), ""), expectedObjects);
+    AssertFlattened(JsonFlattener.FlattenToDict(JToken.Parse(json), ""), expectedObjects);
   }
 
   public static void AssertFlattened(object json, string unwrapBy, object[] expectedObjects)
   {
-    AssertFlattened(JsonFlattener.Flatten(JToken.FromObject(json), unwrapBy), expectedObjects);
+    AssertFlattened(JsonFlattener.FlattenToDict(JToken.FromObject(json), unwrapBy), expectedObjects);
   }
 
   public static void AssertFlattened(string json, string unwrapBy, object[] expectedObjects)
   {
-    AssertFlattened(JsonFlattener.Flatten(JToken.Parse(json), unwrapBy), expectedObjects);
+    AssertFlattened(JsonFlattener.FlattenToDict(JToken.Parse(json), unwrapBy), expectedObjects);
   }
 
   private static void AssertFlattened(List<Dictionary<string, JValue>> res, object[] expectedObjects)

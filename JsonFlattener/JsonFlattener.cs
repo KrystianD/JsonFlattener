@@ -1,5 +1,6 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
+using JetBrains.Annotations;
 using Newtonsoft.Json.Linq;
 
 namespace JsonFlattener;
@@ -8,6 +9,12 @@ public class PathItem
 {
   public string? NextKey;
   public JToken OuterJson;
+
+  public PathItem(string? nextKey, JToken outerJson)
+  {
+    NextKey = nextKey;
+    OuterJson = outerJson;
+  }
 }
 
 public class ObjectProxy
@@ -39,28 +46,19 @@ public class ObjectProxy
   }
 }
 
+[PublicAPI]
 public static class JsonFlattener
 {
-  public static List<Dictionary<string, JValue>> Flatten(JToken token, string flattenAgainst)
+  public static List<ObjectProxy> FlattenToProxy(JToken token, string flattenAgainst)
   {
     if (token == null) {
       throw new ArgumentNullException(nameof(token));
     }
 
-    var objects = new List<Dictionary<string, JValue>>();
-
     var emitterPoints = new List<JToken>();
     EnumerateEmitterPoints((JObject)token, flattenAgainst, emitterPoints);
 
-    foreach (var emitterPoint in emitterPoints) {
-      var pobj = ProcessEmitterPoint(emitterPoint);
-
-      var obj = new Dictionary<string, JValue>();
-      FillDictionaryFromObjectProxy(pobj, new PropPath(), obj);
-      objects.Add(obj);
-    }
-
-    return objects;
+    return emitterPoints.Select(ProcessEmitterPoint).ToList();
   }
 
   private static void EnumerateEmitterPoints(JToken token,
@@ -92,10 +90,8 @@ public static class JsonFlattener
     else {
       switch (token) {
         case JObject jObject:
-          foreach (var pair in jObject) {
+          foreach (var pair in jObject)
             EnumerateEmitterPointsInner(pair.Value, simplePath + pair.Key + "/", flattenAgainst, emitterPoints);
-          }
-
           break;
         case JArray jArray:
           for (int i = 0; i < jArray.Count; i++)
@@ -118,7 +114,7 @@ public static class JsonFlattener
 
     var path = new List<PathItem>(10);
 
-    path.Add(new PathItem() { OuterJson = emitterPoint });
+    path.Add(new PathItem(null, emitterPoint));
 
     // JProperty curProp;
     string curPropName;
@@ -144,7 +140,7 @@ public static class JsonFlattener
     }
 
     while (true) {
-      path.Add(new PathItem() { NextKey = curPropName, OuterJson = parentObject });
+      path.Add(new PathItem(curPropName, parentObject));
 
       var parentProp = (JProperty?)Parent(parentObject);
       if (parentProp == null) {
@@ -158,7 +154,6 @@ public static class JsonFlattener
   }
 
   private static void FillDictionaryFromObjectProxy(ObjectProxy proxy,
-                                                    PropPath path,
                                                     Dictionary<string, JValue> obj)
   {
     var curPath = new PropPath();
@@ -317,5 +312,14 @@ public static class JsonFlattener
 
              return obj;
            }).ToList();
+  }
+
+  public static List<Dictionary<string, JValue>> FlattenToDict(JToken token, string flattenAgainst)
+  {
+    return FlattenToProxy(token, flattenAgainst).Select(objectProxy => {
+      var obj = new Dictionary<string, JValue>();
+      FillDictionaryFromObjectProxy(objectProxy, obj);
+      return obj;
+    }).ToList();
   }
 }

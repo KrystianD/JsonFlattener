@@ -12,7 +12,7 @@ var json = @"{
 }
 ";
 
-var flattened = JsonFlattener.JsonFlattener.Flatten(JToken.Parse(json), "");
+var flattened = JsonFlattener.JsonFlattener.FlattenToDict(JToken.Parse(json), "");
 foreach (var dictionary in flattened) {
   foreach (var (key, value) in dictionary) {
     Console.WriteLine($"{key} = {value}");

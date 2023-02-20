@@ -203,6 +203,6 @@ public class Tests
   [Fact]
   public void TestErrors()
   {
-    Assert.Throws<ArgumentNullException>(() => JsonFlattener.Flatten(null!, ""));
+    Assert.Throws<ArgumentNullException>(() => JsonFlattener.FlattenToDict(null!, ""));
   }
 }
