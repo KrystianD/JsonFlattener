@@ -5,7 +5,13 @@ public class FlattenerMappingAttribute : Attribute
 {
   internal Path Path { get; }
 
-  internal Path[] AlternativePaths = Array.Empty<Path>();
+  public string[] AlternativePaths
+  {
+    set { _alternativePaths = value.Select(x => new Path(x)).ToArray(); }
+    get { return _alternativePaths.Select(x => x.ToString()).ToArray(); }
+  }
+
+  internal Path[] _alternativePaths = Array.Empty<Path>();
 
   public FlattenerMappingAttribute(string path)
   {

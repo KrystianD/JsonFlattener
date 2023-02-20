@@ -289,7 +289,7 @@ public static class JsonFlattener
       if (token != null)
         return token;
 
-      foreach (var path in attr.AlternativePaths) {
+      foreach (var path in attr._alternativePaths) {
         token = jsonObj.GetByPath(path);
         if (token != null)
           return token;
