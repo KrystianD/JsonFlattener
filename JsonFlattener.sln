@@ -8,6 +8,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "JsonFlattener.UnitTests", "
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "JsonFlattener.Benchmark", "JsonFlattener.Benchmark\JsonFlattener.Benchmark.csproj", "{81973232-2C95-429E-BCB9-CA3D6B29401F}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "JsonFlattener.Examples", "JsonFlattener.Examples\JsonFlattener.Examples.csproj", "{8A6E7385-1101-403D-A8A0-4F098255B07C}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -30,5 +32,9 @@ Global
 		{81973232-2C95-429E-BCB9-CA3D6B29401F}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{81973232-2C95-429E-BCB9-CA3D6B29401F}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{81973232-2C95-429E-BCB9-CA3D6B29401F}.Release|Any CPU.Build.0 = Release|Any CPU
+		{8A6E7385-1101-403D-A8A0-4F098255B07C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{8A6E7385-1101-403D-A8A0-4F098255B07C}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{8A6E7385-1101-403D-A8A0-4F098255B07C}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{8A6E7385-1101-403D-A8A0-4F098255B07C}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal
