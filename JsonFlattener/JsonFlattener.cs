@@ -200,6 +200,35 @@ public static class JsonFlattener
            }).ToList();
   }
 
+  [SuppressMessage("ReSharper", "HeapView.PossibleBoxingAllocation")]
+  public static void FlattenIntoObject<T>(JToken token, T obj)
+  {
+    if (token == null) {
+      throw new ArgumentNullException(nameof(token));
+    }
+
+    if (obj == null) {
+      throw new ArgumentNullException(nameof(obj));
+    }
+
+    var cls = PrepareClass(typeof(T));
+
+    var emitterPoints = new List<JToken>();
+    EnumerateEmitterPoints((JObject)token, "", emitterPoints);
+
+    if (emitterPoints.Count == 0) {
+      throw new Exception("no emitter points");
+    }
+
+    if (emitterPoints.Count > 1) {
+      throw new Exception("more than one emitter point");
+    }
+
+    var jsonObj = ProcessEmitterPoint(emitterPoints[0]);
+
+    FillClassFields(cls, jsonObj, obj);
+  }
+
   private static void FillClassFields(ClassDef cls, ObjectProxy jsonObj, object obj)
   {
     static JToken? GetByPaths(ObjectProxy jsonObj, FlattenerMappingAttribute attr)
