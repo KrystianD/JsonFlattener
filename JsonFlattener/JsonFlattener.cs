@@ -191,6 +191,17 @@ public static class JsonFlattener
     var emitterPoints = new List<JToken>();
     EnumerateEmitterPoints((JObject)token, flattenAgainst, emitterPoints);
 
+    return emitterPoints
+           .Select(ProcessEmitterPoint)
+           .Select(jsonObj => {
+             var obj = new T();
+             FillClassFields(cls, jsonObj, obj);
+             return obj;
+           }).ToList();
+  }
+
+  private static void FillClassFields(ClassDef cls, ObjectProxy jsonObj, object obj)
+  {
     static JToken? GetByPaths(ObjectProxy jsonObj, FlattenerMappingAttribute attr)
     {
       var token = jsonObj.GetByPath(attr.Path);
@@ -206,38 +217,31 @@ public static class JsonFlattener
       return null;
     }
 
-    return emitterPoints
-           .Select(ProcessEmitterPoint)
-           .Select(jsonObj => {
-             var obj = new T();
-             foreach (var field in cls.Fields) {
-               try {
-                 var fieldToken = GetByPaths(jsonObj, field.Mapping);
-                 if (fieldToken != null) {
-                   if (field.Processor != null) {
-                     var o = field.Processor((JValue)fieldToken);
-                     if (o is JValue jValue)
-                       field.SetValue(obj, jValue.ToObject(field.FieldType));
-                     else
-                       field.SetValue(obj, o);
-                   }
-                   else {
-                     field.SetValue(obj, fieldToken.ToObject(field.FieldType));
-                   }
-                 }
-               }
-               catch (FormatException e) {
-                 Console.WriteLine($"field: {field.Name} - {e.Message}");
-                 throw;
-               }
-               catch (ArgumentException e) {
-                 Console.WriteLine($"field: {field.Name} - {e.Message}");
-                 throw;
-               }
-             }
-
-             return obj;
-           }).ToList();
+    foreach (var field in cls.Fields) {
+      try {
+        var fieldToken = GetByPaths(jsonObj, field.Mapping);
+        if (fieldToken != null) {
+          if (field.Processor != null) {
+            var o = field.Processor((JValue)fieldToken);
+            if (o is JValue jValue)
+              field.SetValue(obj, jValue.ToObject(field.FieldType));
+            else
+              field.SetValue(obj, o);
+          }
+          else {
+            field.SetValue(obj, fieldToken.ToObject(field.FieldType));
+          }
+        }
+      }
+      catch (FormatException e) {
+        Console.WriteLine($"field: {field.Name} - {e.Message}");
+        throw;
+      }
+      catch (ArgumentException e) {
+        Console.WriteLine($"field: {field.Name} - {e.Message}");
+        throw;
+      }
+    }
   }
 
   public static Dictionary<string, JValue> FlattenToDict(JToken token)
