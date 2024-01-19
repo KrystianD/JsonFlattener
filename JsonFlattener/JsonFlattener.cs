@@ -124,9 +124,9 @@ public static class JsonFlattener
 
       public readonly FlattenerMappingAttribute Mapping;
 
-      public readonly Func<JValue, object?>? Processor;
+      public readonly Func<JToken, object?>? Processor;
 
-      public FieldDef(string name, Action<object, object?> setValue, Type fieldType, FlattenerMappingAttribute mapping, Func<JValue, object?>? processor)
+      public FieldDef(string name, Action<object, object?> setValue, Type fieldType, FlattenerMappingAttribute mapping, Func<JToken, object?>? processor)
       {
         Name = name;
         SetValue = setValue;
@@ -251,7 +251,7 @@ public static class JsonFlattener
         var fieldToken = GetByPaths(jsonObj, field.Mapping);
         if (fieldToken != null) {
           if (field.Processor != null) {
-            var o = field.Processor((JValue)fieldToken);
+            var o = field.Processor(fieldToken);
             if (o is JValue jValue)
               field.SetValue(obj, jValue.ToObject(field.FieldType));
             else

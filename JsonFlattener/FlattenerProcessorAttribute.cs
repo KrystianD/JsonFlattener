@@ -5,7 +5,7 @@ namespace JsonFlattener;
 
 public interface IFlattenerProcessor
 {
-  public object? Processor(JValue value);
+  public object? Processor(JToken value);
 }
 
 [PublicAPI]
