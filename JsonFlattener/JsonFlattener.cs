@@ -1,6 +1,7 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using JetBrains.Annotations;
+using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
 namespace JsonFlattener;
@@ -149,14 +150,24 @@ public static class JsonFlattener
       if (attr == null)
         continue;
 
-      var processor = fieldInfo.GetCustomAttribute<FlattenerProcessorAttribute>();
+      Func<JToken, object?>? processor = null;
+
+      var processorAttr = fieldInfo.GetCustomAttribute<FlattenerProcessorAttribute>();
+      if (processorAttr != null) {
+        processor = processorAttr.Processor.Processor;
+      }
+
+      processor = ApplyJsonConverterAttribute(
+          fieldInfo.GetCustomAttribute<JsonConverterAttribute>(),
+          fieldInfo.FieldType,
+          processor);
 
       cls.Fields.Add(new ClassDef.FieldDef(
                          name: fieldInfo.Name,
                          setValue: fieldInfo.SetValue,
                          fieldType: fieldInfo.FieldType,
                          mapping: attr,
-                         processor: processor == null ? null : processor.Processor.Processor
+                         processor: processor
                      ));
     }
 
@@ -165,14 +176,24 @@ public static class JsonFlattener
       if (attr == null)
         continue;
 
-      var processor = propertyInfo.GetCustomAttribute<FlattenerProcessorAttribute>();
+      Func<JToken, object?>? processor = null;
+
+      var processorAttr = propertyInfo.GetCustomAttribute<FlattenerProcessorAttribute>();
+      if (processorAttr != null) {
+        processor = processorAttr.Processor.Processor;
+      }
+
+      processor = ApplyJsonConverterAttribute(
+          propertyInfo.GetCustomAttribute<JsonConverterAttribute>(),
+          propertyInfo.PropertyType,
+          processor);
 
       cls.Fields.Add(new ClassDef.FieldDef(
                          name: propertyInfo.Name,
                          setValue: propertyInfo.SetValue,
                          fieldType: propertyInfo.PropertyType,
                          mapping: attr,
-                         processor: processor == null ? null : processor.Processor.Processor
+                         processor: processor
                      ));
     }
 
@@ -281,5 +302,41 @@ public static class JsonFlattener
   public static List<Dictionary<string, JValue>> FlattenToDict(JToken token, string flattenAgainst)
   {
     return FlattenToProxy(token, flattenAgainst).Select(objectProxy => objectProxy.GetAsDictionary()).ToList();
+  }
+
+  // JsonConverter
+  private static readonly JsonSerializer JsonConverterSerializer = new() { DateParseHandling = DateParseHandling.None };
+
+  private static object? ConvertUsingJsonConverter(JsonConverter jsonConverter, JToken jsonObj, Type targetType)
+  {
+    using var sr = new StringReader(jsonObj.ToString(Formatting.None));
+    using var jsonTextReader = new JsonTextReader(sr);
+    jsonTextReader.DateParseHandling = JsonConverterSerializer.DateParseHandling;
+    jsonTextReader.Read();
+
+    return jsonConverter.ReadJson(jsonTextReader, targetType, null, JsonConverterSerializer);
+  }
+
+  private static Func<JToken, object?>? ApplyJsonConverterAttribute(JsonConverterAttribute? jsonConverterAttr, Type targetType, Func<JToken, object?>? processor)
+  {
+    if (jsonConverterAttr != null) {
+      var jsonConverter = (JsonConverter)Activator.CreateInstance(jsonConverterAttr.ConverterType, jsonConverterAttr.ConverterParameters)!;
+
+      if (processor == null) {
+        processor = token => ConvertUsingJsonConverter(jsonConverter, token, targetType);
+      }
+      else {
+        var prevProcessor = processor;
+        processor = token => {
+          var o = prevProcessor(token);
+          if (o is JToken jToken)
+            return ConvertUsingJsonConverter(jsonConverter, jToken, targetType);
+          else
+            return o;
+        };
+      }
+    }
+
+    return processor;
   }
 }
