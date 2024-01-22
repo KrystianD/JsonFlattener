@@ -252,8 +252,8 @@ public static class JsonFlattener
         if (fieldToken != null) {
           if (field.Processor != null) {
             var o = field.Processor(fieldToken);
-            if (o is JValue jValue)
-              field.SetValue(obj, jValue.ToObject(field.FieldType));
+            if (o is JToken jToken)
+              field.SetValue(obj, jToken.ToObject(field.FieldType));
             else
               field.SetValue(obj, o);
           }
