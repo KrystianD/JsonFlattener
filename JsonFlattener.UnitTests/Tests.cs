@@ -1,5 +1,7 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
+using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using Xunit;
 
@@ -228,6 +230,62 @@ public class Tests
                 ["objs[1]/n1"] = 4,
             },
         });
+  }
+
+  [Fact]
+  public void TestObjectProxyGetByPath()
+  {
+    var data = JToken.FromObject(new {
+        name = "value",
+        sub1 = new {
+            sub1_val = 1,
+            sub2 = new[] {
+                new {
+                    sub2_val = 11,
+                    sub3 = new[] {
+                        new {
+                            n2 = 1,
+                        },
+                        new {
+                            n2 = 2,
+                        },
+                    },
+                },
+                new {
+                    sub2_val = 22,
+                    sub3 = new[] {
+                        new {
+                            n2 = 3,
+                        },
+                    },
+                },
+            },
+        },
+    });
+
+    Assert.Collection(
+        JsonFlattener.FlattenToProxy(data, "sub1/sub2/sub3").Select(x => JsonConvert.SerializeObject(x.GetByPath(""))),
+        json => Assert.Equal("{\"name\":\"value\",\"sub1\":{\"sub1_val\":1,\"sub2\":{\"sub2_val\":11,\"sub3\":{\"n2\":1}}}}", json),
+        json => Assert.Equal("{\"name\":\"value\",\"sub1\":{\"sub1_val\":1,\"sub2\":{\"sub2_val\":11,\"sub3\":{\"n2\":2}}}}", json),
+        json => Assert.Equal("{\"name\":\"value\",\"sub1\":{\"sub1_val\":1,\"sub2\":{\"sub2_val\":22,\"sub3\":{\"n2\":3}}}}", json));
+
+    Assert.Collection(
+        JsonFlattener.FlattenToProxy(data, "sub1/sub2/sub3").Select(x => JsonConvert.SerializeObject(x.GetByPath("sub1"))),
+        json => Assert.Equal("{\"sub1_val\":1,\"sub2\":{\"sub2_val\":11,\"sub3\":{\"n2\":1}}}", json),
+        json => Assert.Equal("{\"sub1_val\":1,\"sub2\":{\"sub2_val\":11,\"sub3\":{\"n2\":2}}}", json),
+        json => Assert.Equal("{\"sub1_val\":1,\"sub2\":{\"sub2_val\":22,\"sub3\":{\"n2\":3}}}", json));
+
+    Assert.Collection(
+        JsonFlattener.FlattenToProxy(data, "sub1/sub2/sub3").Select(x => JsonConvert.SerializeObject(x.GetByPath("sub1/sub2"))),
+        json => Assert.Equal("{\"sub2_val\":11,\"sub3\":{\"n2\":1}}", json),
+        json => Assert.Equal("{\"sub2_val\":11,\"sub3\":{\"n2\":2}}", json),
+        json => Assert.Equal("{\"sub2_val\":22,\"sub3\":{\"n2\":3}}", json));
+
+    Assert.Collection(
+        JsonFlattener.FlattenToProxy(data, "sub1/sub2/sub3").Select(x => JsonConvert.SerializeObject(x.GetByPath("sub1/sub2/sub3"))),
+        json => Assert.Equal("{\"n2\":1}", json),
+        json => Assert.Equal("{\"n2\":2}", json),
+        json => Assert.Equal("{\"n2\":3}", json));
   }
 
   [Fact]

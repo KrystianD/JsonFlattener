@@ -31,8 +31,17 @@ public class ObjectProxy
   {
     for (int i = 0; i < PathItems.Count; i++) {
       if (i >= path.Parts.Length) {
-        var jsonPath = string.Join('.', path.Parts.Skip(i));
-        return PathItems[i].OuterJson.SelectToken(jsonPath);
+        JToken Get(int level)
+        {
+          var pathItem = PathItems[level];
+          if (pathItem.NextKey == null)
+            return pathItem.OuterJson;
+          var obj = Utils.ShallowCloneWithoutKey((JObject)pathItem.OuterJson, pathItem.NextKey);
+          obj[pathItem.NextKey] = Get(level + 1);
+          return obj;
+        }
+
+        return Get(i);
       }
 
       if (path.Parts[i] != PathItems[i].NextKey) {
