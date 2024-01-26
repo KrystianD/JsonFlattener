@@ -260,7 +260,7 @@ public static class JsonFlattener
     FillClassFields(jsonObj, obj);
   }
 
-  private static void FillClassFields(ClassDef cls, ObjectProxy jsonObj, object obj)
+  internal static void FillClassFields(ObjectProxy jsonObj, object obj)
   {
     static JToken? GetByPaths(ObjectProxy jsonObj, FlattenerMappingAttribute attr)
     {

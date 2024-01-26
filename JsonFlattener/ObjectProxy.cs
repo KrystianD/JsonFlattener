@@ -95,4 +95,16 @@ public class ObjectProxy
         break;
     }
   }
+
+  public T GetAsObject<T>() where T : class, new()
+  {
+    var obj = new T();
+    JsonFlattener.FillClassFields(this, obj);
+    return obj;
+  }
+
+  public void GetIntoObject(object obj)
+  {
+    JsonFlattener.FillClassFields(this, obj);
+  }
 }
