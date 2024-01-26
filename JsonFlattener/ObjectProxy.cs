@@ -25,11 +25,7 @@ public class ObjectProxy
     PathItems = pathItems;
   }
 
-  public JToken? GetByPath(string path)
-  {
-    var parts = path.Split('/');
-    return GetByPath(new Path(parts));
-  }
+  public JToken? GetByPath(string path) => GetByPath(new Path(path));
 
   internal JToken? GetByPath(Path path)
   {
