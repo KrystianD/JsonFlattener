@@ -11,7 +11,7 @@ internal class Path
 
   public Path(string path)
   {
-    Parts = path.Split('/');
+    Parts = path.Split('/', StringSplitOptions.RemoveEmptyEntries);
   }
 
   public override string ToString()
