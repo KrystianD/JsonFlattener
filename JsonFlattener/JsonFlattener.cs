@@ -9,6 +9,8 @@ namespace JsonFlattener;
 [PublicAPI]
 public static class JsonFlattener
 {
+  private static Dictionary<Type, ClassDef> _typeCache = new();
+
   public static List<ObjectProxy> FlattenToProxy(JToken token, string flattenAgainst)
   {
     if (token == null) {
@@ -200,14 +202,24 @@ public static class JsonFlattener
     return cls;
   }
 
+  private static ClassDef GetClassDef(Type objType)
+  {
+    lock (_typeCache) {
+      if (!_typeCache.TryGetValue(objType, out var classDef)) {
+        classDef = PrepareClass(objType);
+        _typeCache[objType] = classDef;
+      }
+
+      return classDef;
+    }
+  }
+
   [SuppressMessage("ReSharper", "HeapView.PossibleBoxingAllocation")]
   public static List<T> FlattenToObject<T>(JToken token, string flattenAgainst) where T : new()
   {
     if (token == null) {
       throw new ArgumentNullException(nameof(token));
     }
-
-    var cls = PrepareClass(typeof(T));
 
     var emitterPoints = new List<JToken>();
     EnumerateEmitterPoints((JObject)token, flattenAgainst, emitterPoints);
@@ -216,7 +228,7 @@ public static class JsonFlattener
            .Select(ProcessEmitterPoint)
            .Select(jsonObj => {
              var obj = new T();
-             FillClassFields(cls, jsonObj, obj);
+             FillClassFields(jsonObj, obj);
              return obj;
            }).ToList();
   }
@@ -232,8 +244,6 @@ public static class JsonFlattener
       throw new ArgumentNullException(nameof(obj));
     }
 
-    var cls = PrepareClass(typeof(T));
-
     var emitterPoints = new List<JToken>();
     EnumerateEmitterPoints((JObject)token, "", emitterPoints);
 
@@ -247,7 +257,7 @@ public static class JsonFlattener
 
     var jsonObj = ProcessEmitterPoint(emitterPoints[0]);
 
-    FillClassFields(cls, jsonObj, obj);
+    FillClassFields(jsonObj, obj);
   }
 
   private static void FillClassFields(ClassDef cls, ObjectProxy jsonObj, object obj)
@@ -266,6 +276,8 @@ public static class JsonFlattener
 
       return null;
     }
+
+    var cls = GetClassDef(obj.GetType());
 
     foreach (var field in cls.Fields) {
       try {
